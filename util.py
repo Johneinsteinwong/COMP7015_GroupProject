@@ -19,7 +19,28 @@ def print_confusion_matrix(confusion_matrix, class_names, figsize = (6,5)):
   plt.title('Confusion matrix', fontsize=25)
   plt.ylabel('True label', fontsize=17)
   plt.xlabel('Predicted label', fontsize=17)
+  plt.show()
   return fig
+
+def plot_f1_vs_thr(y_true, y_pred_prob):
+  scores = []
+  thr = np.linspace(0,1,100)
+  for t in thr:
+    y_pred = (y_pred_prob>=t).astype(int)
+    f1 = f1_score(y_true, y_pred)
+    scores.append(f1)
+  ind = np.argmax(scores)
+  print(f'Optimal threshold is {thr[ind]:.4f}, at f1 score of {scores[ind]:.4f}')
+  plt.plot(thr,scores,ms=5,marker='.',linestyle='-')
+  plt.xlim([0.3,0.7])
+  plt.title('F1 score vs threshold')
+  plt.xlabel('Threshold')
+  plt.ylabel('F1 score')
+  plt.grid(which='major', color='k')
+  plt.grid(which='minor', linestyle='--')
+  plt.minorticks_on()
+  plt.show()
+   
 
 
 def evaluate_model(y_true, y_pred, y_pred_prob):
@@ -43,6 +64,7 @@ def evaluate_model(y_true, y_pred, y_pred_prob):
   print('F1 Score: %.3f'%f1)
   print('AUC score: %.3f \n'%roc_auc)
   print_confusion_matrix(cm,[1,0])
+  
 
 def plot_roc(y_true, y_pred_prob):
   '''
