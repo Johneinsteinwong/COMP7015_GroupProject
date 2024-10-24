@@ -2,12 +2,11 @@ import numpy as np
 from scipy.stats import norm, logistic
 from scipy.optimize import minimize
 from sklearn.exceptions import NotFittedError
+from sklearn.base import BaseEstimator, ClassifierMixin
 
-class LatentVariableModel():
+class LatentVariableModel(BaseEstimator):
     
     def __init__(self, dist, l1, l2, w0, w1):
-        if l1<0 or l2<0:
-            raise ValueError('l1 and l2 must be non-negative!')
         self.param = None
         self.dist = dist
         self.l1 = l1
@@ -23,13 +22,18 @@ class LatentVariableModel():
         obj = np.mean(diff) + self.l1*np.linalg.norm(param, ord=1) + self.l2*np.linalg.norm(param, ord=2)
         return obj
 
-    def fit(self, x, y, tol=1e-5, maxiter=1000):
+    def fit(self, x, y, tol=1e-5, maxiter=1000, verbose=False):
+        if self.l1<0 or self.l2<0:
+            raise ValueError('l1 and l2 must be non-negative!')
         loss_values = []
         self.param = np.zeros(x.shape[1]+1)
-        def callback(param):
-            current_loss = self.__loss(param, x, y)
-            loss_values.append(current_loss)
-            print("Current loss:", current_loss)
+        if verbose:
+            def callback(param):
+                current_loss = self.__loss(param, x, y)
+                loss_values.append(current_loss)
+                print("Current loss:", current_loss)
+        else:
+            callback = None
         
         result = minimize(self.__loss, self.param, args=(x, y), method='BFGS', tol=tol, options={'maxiter':maxiter}, callback=callback)
         self.param = result.x
