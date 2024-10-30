@@ -1,0 +1,1 @@
+{'objective': 'none', 'random_seed': 0, 'num_leaves': 30, 'max_depth': 50, 'learning_rate': 0.05, 'reg_alpha': 5, 'reg_lambda': 5, 'force_col_wise': 'true', 'is_unbalance': True, 'keep_training_booster': True, 'num_iterations': 100}
