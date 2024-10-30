@@ -9,12 +9,13 @@ from tabulate import tabulate
 
 class LatentVariableModel(BaseEstimator):
     
-    def __init__(self, dist, l1=0.0, l2=0.0, w=0.5):
+    def __init__(self, dist, l1=0.0, l2=0.0, w=0.5, reg=1e-5):
         self.param = None
         self.dist = dist
         self.l1 = l1
         self.l2 = l2
         self.w = w
+        self.reg = reg
 
     def __calculate_hessian(self, func, param, args, epsilon=1e-5):
         n = len(param)
@@ -68,7 +69,7 @@ class LatentVariableModel(BaseEstimator):
 
         # Wald test
         hessian_matrix = self.__calculate_hessian(self.__log_likelihood, self.param, args=(x, y))
-        self.hessian_inv = np.linalg.inv(hessian_matrix)
+        self.hessian_inv = np.linalg.inv(hessian_matrix+self.reg)
 
         se, wald_stats, p_values = self.wald_test()
 

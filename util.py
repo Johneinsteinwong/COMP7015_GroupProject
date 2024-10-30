@@ -1,9 +1,32 @@
 from sklearn.metrics import confusion_matrix, accuracy_score, \
 precision_score, recall_score, f1_score, roc_curve, roc_auc_score
+from sklearn.model_selection import StratifiedKFold
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sns
+from sklearn.pipeline import Pipeline
+
+def cv(pipeline, x, y, scoring, k, random_state, verbose=False):
+    scores = []
+    kf = StratifiedKFold(n_splits=k, shuffle=True, random_state=random_state)
+    for i, (train_index, test_index) in enumerate(kf.split(x,y), start=1):
+
+        pipe = Pipeline(pipeline)
+
+        x_train, y_train = x[train_index], y[train_index]
+        x_test, y_test = x[test_index], y[test_index]
+
+        pipe.fit(x_train, y_train)
+        y_pred = pipe.predict(x_test)
+        score = scoring(y_test, y_pred)
+        if verbose: print(f'Fold{i}, f1 score: {score}')
+        scores.append(score)
+
+    mean = np.mean(scores)
+    if verbose: print(f'Mean score: {mean}')  
+    return mean
+
 
 def print_confusion_matrix(confusion_matrix, class_names, figsize = (6,5)):
   df_cm = pd.DataFrame(
