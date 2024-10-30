@@ -49,7 +49,7 @@ class LatentVariableModel(BaseEstimator):
         return obj
 
 
-    def fit(self, x, y, tol=1e-5, maxiter=1000, verbose=False):
+    def fit(self, x, y, tol=1e-5, maxiter=1000, verbose=False, wald=False):
         if self.l1<0 or self.l2<0:
             raise ValueError('l1 and l2 must be non-negative!')
         if self.w<0 or self.w>1:
@@ -67,30 +67,35 @@ class LatentVariableModel(BaseEstimator):
         result = minimize(self.__loss, self.param, args=(x, y), method='BFGS', tol=tol, options={'maxiter':maxiter}, callback=callback)
         self.param = result.x
 
-        # Wald test
-        hessian_matrix = self.__calculate_hessian(self.__log_likelihood, self.param, args=(x, y))
-        self.hessian_inv = np.linalg.inv(hessian_matrix+self.reg)
-
-        se, wald_stats, p_values = self.wald_test()
-
-        wald_df = pd.DataFrame(
-                zip(
-                    self.param,
-                    se.round(4),
-                    wald_stats.round(4),
-                    p_values.round(4)
-                ), columns=['coef','std err','z','P>|z|']
-        ).sort_values(by='P>|z|', ascending=True).reset_index(inplace=False)
-
-        if verbose:
-            print('Wald test summary:')
-            print(tabulate(wald_df, headers='keys', tablefmt='psql'))
-
         res_dict = {
             'result': result,
             'loss': loss_values,
-            'wald_result': wald_df
+            
         }
+
+        if wald:
+            # Wald test
+            hessian_matrix = self.__calculate_hessian(self.__log_likelihood, self.param, args=(x, y))
+            self.hessian_inv = np.linalg.inv(hessian_matrix+self.reg)
+
+            se, wald_stats, p_values = self.wald_test()
+
+            wald_df = pd.DataFrame(
+                    zip(
+                        self.param,
+                        se.round(4),
+                        wald_stats.round(4),
+                        p_values.round(4)
+                    ), columns=['coef','std err','z','P>|z|']
+            ).sort_values(by='P>|z|', ascending=True).reset_index(inplace=False)
+
+            res_dict['wald_result'] = wald_df
+
+            if verbose:
+                print('Wald test summary:')
+                print(tabulate(wald_df, headers='keys', tablefmt='psql'))
+
+
         return res_dict
 
     def wald_test(self):
