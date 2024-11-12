@@ -6,6 +6,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from scipy.optimize import approx_fprime
 import pandas as pd
 from tabulate import tabulate
+from lightgbm import LGBMClassifier
 
 class LatentVariableModel(BaseEstimator):
     
@@ -128,3 +129,19 @@ class logisticModel(LatentVariableModel):
 class probitModel(LatentVariableModel):
     def __init__(self, l1=0.0, l2=0.0, w=0.5):
         super().__init__(norm, l1, l2, w)
+
+class lgbModel(BaseEstimator):
+    def __init__(self, eval_metric, **kwargs):
+        self.model = LGBMClassifier(**kwargs)
+        self.eval_metric = eval_metric
+    
+    def fit(self, x, y, **kwargs):
+        self.model.fit(x, y, eval_metric=self.eval_metric, **kwargs)
+        return self
+
+    def predict_proba(self, x):
+        return self.model.predict_proba(x, verbosity=-1)[:,1]
+
+    def predict(self, x, thr=0.5):
+        prob = self.model.predict_proba(x, verbosity=-1)[:,1]
+        return (prob>=thr).astype(int)
