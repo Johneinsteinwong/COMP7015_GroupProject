@@ -6,6 +6,81 @@ import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sns
 from sklearn.pipeline import Pipeline
+from sklearn.ensemble import IsolationForest
+from sklearn.impute import KNNImputer 
+from sklearn.base import BaseEstimator, TransformerMixin
+
+
+def compute_features(df, n_neighbors=10):
+    # Make sure not using label to compute features
+    assert 'mortality' not in df.columns
+
+    # Calculate Range
+    df['Fraction inspired oxygen_range'] =  df['Fraction inspired oxygen_max'] -  df['Fraction inspired oxygen_min']
+    df['Glucose_range'] =  df['Glucose_max'] -  df['Glucose_min']
+    df['Heart Rate_range'] =  df['Heart Rate_max'] -  df['Heart Rate_min']
+    df['Mean blood pressure_range'] =  df['Mean blood pressure_max'] -  df['Mean blood pressure_min']
+    df['Diastolic blood pressure_range'] =  df['Diastolic blood pressure_max'] -  df['Diastolic blood pressure_min']
+    df['Systolic blood pressure_range'] =  df['Systolic blood pressure_max'] -  df['Systolic blood pressure_min']
+    df['Oxygen saturation_range'] =  df['Oxygen saturation_max'] -  df['Oxygen saturation_min']
+    df['Respiratory rate_range'] =  df['Respiratory rate_max'] -  df['Respiratory rate_min']
+    df['Temperature_range'] =  df['Temperature_max'] -  df['Temperature_min']
+    df['Weight_range'] =  df['Weight_max'] -  df['Weight_min']
+    df['pH_range'] =  df['pH_max'] -  df['pH_min']
+
+    # Create Ratios
+    df['Fraction inspired oxygen_min_to_mean'] = df['Fraction inspired oxygen_min'] / df['Fraction inspired oxygen_mean']
+    df['Fraction inspired oxygen_max_to_mean'] = df['Fraction inspired oxygen_max'] / df['Fraction inspired oxygen_mean']
+    df['Glucose_min_to_mean'] = df['Glucose_min'] / df['Glucose_mean']
+    df['Glucose_max_to_mean'] = df['Glucose_max'] / df['Glucose_mean']
+    df['Heart Rate_min_to_mean'] = df['Heart Rate_min'] / df['Heart Rate_mean']
+    df['Heart Rate_max_to_mean'] = df['Heart Rate_max'] / df['Heart Rate_mean']
+    df['Mean blood pressure_min_to_mean'] = df['Mean blood pressure_min'] / df['Mean blood pressure_mean']
+    df['Mean blood pressure_max_to_mean'] = df['Mean blood pressure_max'] / df['Mean blood pressure_mean']
+    df['Diastolic blood pressure_min_to_mean'] = df['Diastolic blood pressure_min'] / df['Diastolic blood pressure_mean']
+    df['Diastolic blood pressure_max_to_mean'] = df['Diastolic blood pressure_max'] / df['Diastolic blood pressure_mean']
+    df['Systolic blood pressure_min_to_mean'] = df['Systolic blood pressure_min'] / df['Systolic blood pressure_mean']
+    df['Systolic blood pressure_max_to_mean'] = df['Systolic blood pressure_max'] / df['Systolic blood pressure_mean']
+    df['Oxygen saturation_min_to_mean'] = df['Oxygen saturation_min'] / df['Oxygen saturation_mean']
+    df['Oxygen saturation_max_to_mean'] = df['Oxygen saturation_max'] / df['Oxygen saturation_mean']
+    df['Respiratory rate_min_to_mean'] = df['Respiratory rate_min'] / df['Respiratory rate_mean']
+    df['Respiratory rate_max_to_mean'] = df['Respiratory rate_max'] / df['Respiratory rate_mean']
+    df['Temperature_min_to_mean'] = df['Temperature_min'] / df['Temperature_mean']
+    df['Temperature_max_to_mean'] = df['Temperature_max'] / df['Temperature_mean']
+    df['Weight_min_to_mean'] = df['Weight_min'] / df['Weight_mean']
+    df['Weight_max_to_mean'] = df['Weight_max'] / df['Weight_mean']
+    df['pH_min_to_mean'] = df['pH_min'] / df['pH_mean']
+    df['pH_max_to_mean'] = df['pH_max'] / df['pH_mean']
+    return df
+
+
+
+class FeatureTransformer(BaseEstimator, TransformerMixin):
+   def __init__(self, fnames, n_neighbors=10):
+      self.n_neighbors = n_neighbors
+      self.fnames = fnames
+
+   def find_outliers(self, x):
+      # Outlier may contain information about the minority class, we can use it as a feature
+      # We use IsolationForest to detect outlier
+      knn_imputer = KNNImputer(n_neighbors=self.n_neighbors)
+      x_iso_forest = knn_imputer.fit_transform(x)
+
+      iso_forest = IsolationForest(random_state=42)
+      iso_forest.fit(x_iso_forest)
+
+      return iso_forest.predict(x_iso_forest)
+
+   def fit(self, x, y=None):
+      return self
+   
+   def transform(self, x, y=None):
+      is_outlier = self.find_outliers(x, n_neighbors=self.n_neighbors)
+      if not isinstance(x, pd.DataFrame):
+         x = pd.DataFrame(x, columns=self.fnames)
+      x['is_outlier'] = is_outlier
+      return x
+   
 
 def cv(pipeline, x, y, scoring, k, random_state, verbose=False):
     scores = []
