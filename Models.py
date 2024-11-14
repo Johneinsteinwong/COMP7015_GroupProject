@@ -50,7 +50,7 @@ class LatentVariableModel(BaseEstimator):
         return obj
 
 
-    def fit(self, x, y, tol=1e-6, maxiter=20000, method='SLSQP', verbose=False, wald=False):
+    def fit(self, x, y, tol=1e-4, maxiter=20000, method='SLSQP', verbose=False, wald=False):
         if self.l1<0 or self.l2<0:
             raise ValueError('l1 and l2 must be non-negative!')
         if self.w<0 or self.w>1:
@@ -109,6 +109,9 @@ class LatentVariableModel(BaseEstimator):
     def predict_score(self, x):
         if self.param is None:
             raise NotFittedError("Model is not fitted yet. Call 'fit' with appropriate arguments before using this estimator.")
+        if x.shape[1] != len(self.param)-1:
+            raise ValueError(f"No. of columns doesn't match the no. of features in training data!")
+        
         p = self.param[:-1]
         b = self.param[-1]
         score = np.dot(x,p) + b
