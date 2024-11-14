@@ -9,9 +9,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import IsolationForest
 from sklearn.impute import KNNImputer 
 from sklearn.base import BaseEstimator, TransformerMixin
+import os
 
 
-def compute_features(df, n_neighbors=10):
+def compute_features(df):
     # Make sure not using label to compute features
     assert 'mortality' not in df.columns
 
@@ -75,14 +76,21 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
       return self
    
    def transform(self, x, y=None):
-      is_outlier = self.find_outliers(x, n_neighbors=self.n_neighbors)
+      is_outlier = self.find_outliers(x)
       if not isinstance(x, pd.DataFrame):
          x = pd.DataFrame(x, columns=self.fnames)
       x['is_outlier'] = is_outlier
       return x
    
 
-def cv(pipeline, x, y, scoring, k, random_state, verbose=False):
+def cv(pipeline, x, y, scoring, k, random_state, verbose=False, path=None):
+    if path is not None:
+      if not os.path.exists(path):
+        os.makedirs(path)
+      fname = os.path.join(path, f'result.txt')
+      fobj = open(fname, 'w+')
+
+
     scores = []
     kf = StratifiedKFold(n_splits=k, shuffle=True, random_state=random_state)
     for i, (train_index, test_index) in enumerate(kf.split(x,y), start=1):
@@ -94,16 +102,29 @@ def cv(pipeline, x, y, scoring, k, random_state, verbose=False):
 
         pipe.fit(x_train, y_train)
         y_pred = pipe.predict(x_test)
+        y_pred_prob = pipe.predict_proba(x_test)[:,1]
+
         score = scoring(y_test, y_pred)
-        if verbose: print(f'Fold{i}, f1 score: {score}')
         scores.append(score)
+        if verbose: print(f'Fold{i}, f1 score: {score}')
+        if path is not None:
+          
+          fig_name = os.path.join(path, f'fold_{i}_confusion_matrix.jpg')
+          roc_name = os.path.join(path, f'fold_{i}_roc.jpg')
+          
+          fobj.write(f'Fold {i} result:\n')
+          evaluate_model(y_test, y_pred, y_pred_prob, fobj=fobj, fig_name=fig_name)
+          plot_roc(y_test, y_pred_prob, fig_name=roc_name)       
 
     mean = np.mean(scores)
     if verbose: print(f'Mean score: {mean}')  
+    if path is not None:
+      fobj.write(f'Mean score: {mean}\n')
+      fobj.close()
     return mean
 
 
-def print_confusion_matrix(confusion_matrix, class_names, figsize = (6,5)):
+def print_confusion_matrix(confusion_matrix, class_names, fig_name=None, figsize = (6,5)):
   df_cm = pd.DataFrame(
       confusion_matrix, index=class_names, columns=class_names,
   )
@@ -117,10 +138,14 @@ def print_confusion_matrix(confusion_matrix, class_names, figsize = (6,5)):
   plt.title('Confusion matrix', fontsize=25)
   plt.ylabel('True label', fontsize=17)
   plt.xlabel('Predicted label', fontsize=17)
-  plt.show()
-  return fig
+  if fig_name is None:
+    plt.show()
+  else:
+    plt.savefig(fig_name)
+  plt.close()
 
-def plot_f1_vs_thr(y_true, y_pred_prob):
+
+def plot_f1_vs_thr(y_true, y_pred_prob, fig_name=None):
   scores = []
   thr = np.linspace(0,1,100)
   for t in thr:
@@ -137,11 +162,15 @@ def plot_f1_vs_thr(y_true, y_pred_prob):
   plt.grid(which='major', color='k')
   plt.grid(which='minor', linestyle='--')
   plt.minorticks_on()
-  plt.show()
+  if fig_name is None:
+    plt.show()
+  else:
+    plt.savefig(fig_name)
+  plt.close()
    
 
 
-def evaluate_model(y_true, y_pred, y_pred_prob):
+def evaluate_model(y_true, y_pred, y_pred_prob, fobj=None, fig_name=None):
   '''
   y_true: a numpy array of true class label, containing 0 and 1
   y_pred: a numpy array of predicted class label, containing 0 and 1
@@ -155,16 +184,25 @@ def evaluate_model(y_true, y_pred, y_pred_prob):
   recall = recall_score(y_true, y_pred)
   f1 = f1_score(y_true, y_pred)
   roc_auc = roc_auc_score(y_true, y_pred_prob)
+  if fobj is None:
+    print('Accuracy: %.3f'%acc)
+    print('Precision: %.3f'%precision)
+    print('Recall: %.3f'%recall)
+    print('F1 Score: %.3f'%f1)
+    print('AUC score: %.3f \n'%roc_auc)
+  else:
+    fobj.write('Accuracy: %.3f\n'%acc)
+    fobj.write('Precision: %.3f\n'%precision)
+    fobj.write('Recall: %.3f\n'%recall)
+    fobj.write('F1 Score: %.3f\n'%f1)
+    fobj.write('AUC score: %.3f\n'%roc_auc)
+    fobj.write('\n')
 
-  print('Accuracy: %.3f'%acc)
-  print('Precision: %.3f'%precision)
-  print('Recall: %.3f'%recall)
-  print('F1 Score: %.3f'%f1)
-  print('AUC score: %.3f \n'%roc_auc)
-  print_confusion_matrix(cm,[1,0])
+  print_confusion_matrix(cm,[1,0], fig_name=fig_name)
+
   
 
-def plot_roc(y_true, y_pred_prob):
+def plot_roc(y_true, y_pred_prob, fig_name=None):
   '''
   y_true: a numpy array of true class label, containing 0 and 1
   y_pred_prob: a numpy array of predicted probability of belonging to a class
@@ -183,5 +221,10 @@ def plot_roc(y_true, y_pred_prob):
   plt.ylabel('True Positive Rate')
   plt.title('ROC Curve')
   plt.legend(loc="lower right")
-  plt.show()
+  if fig_name is None:
+    plt.show()
+  else:
+    plt.savefig(fig_name)
+  plt.close()
+
 

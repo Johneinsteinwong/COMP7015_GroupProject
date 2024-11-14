@@ -50,7 +50,7 @@ class LatentVariableModel(BaseEstimator):
         return obj
 
 
-    def fit(self, x, y, tol=1e-5, maxiter=1000, verbose=False, wald=False):
+    def fit(self, x, y, tol=1e-6, maxiter=20000, method='SLSQP', verbose=False, wald=False):
         if self.l1<0 or self.l2<0:
             raise ValueError('l1 and l2 must be non-negative!')
         if self.w<0 or self.w>1:
@@ -65,9 +65,10 @@ class LatentVariableModel(BaseEstimator):
         else:
             callback = None
         
-        result = minimize(self.__loss, self.param, args=(x, y), method='BFGS', tol=tol, options={'maxiter':maxiter}, callback=callback)
+        result = minimize(self.__loss, self.param, args=(x, y), method=method, tol=tol, options={'maxiter':maxiter}, callback=callback)
         self.param = result.x
-
+        if verbose:
+            print('Optimization result:', result.message)
         res_dict = {
             'result': result,
             'loss': loss_values,
