@@ -50,7 +50,7 @@ class LatentVariableModel(BaseEstimator):
         return obj
 
 
-    def fit(self, x, y, tol=1e-4, maxiter=20000, method='SLSQP', verbose=False, wald=False):
+    def fit(self, x, y, tol=1e-6, maxiter=20000, method='SLSQP', verbose=False, wald=False):
         if self.l1<0 or self.l2<0:
             raise ValueError('l1 and l2 must be non-negative!')
         if self.w<0 or self.w>1:

@@ -1,36 +1,36 @@
 Fold 1 result:
-Accuracy: 0.484
-Precision: 0.275
-Recall: 0.650
-F1 Score: 0.387
-AUC score: 0.550
+Accuracy: 0.486
+Precision: 0.277
+Recall: 0.654
+F1 Score: 0.389
+AUC score: 0.580
 
 Fold 2 result:
-Accuracy: 0.486
-Precision: 0.269
-Recall: 0.615
-F1 Score: 0.375
-AUC score: 0.543
+Accuracy: 0.494
+Precision: 0.276
+Recall: 0.629
+F1 Score: 0.384
+AUC score: 0.567
 
 Fold 3 result:
-Accuracy: 0.481
-Precision: 0.272
-Recall: 0.640
-F1 Score: 0.382
-AUC score: 0.558
+Accuracy: 0.494
+Precision: 0.282
+Recall: 0.661
+F1 Score: 0.396
+AUC score: 0.576
 
 Fold 4 result:
-Accuracy: 0.523
-Precision: 0.282
-Recall: 0.587
-F1 Score: 0.381
-AUC score: 0.557
+Accuracy: 0.533
+Precision: 0.295
+Recall: 0.622
+F1 Score: 0.400
+AUC score: 0.581
 
 Fold 5 result:
-Accuracy: 0.460
-Precision: 0.270
-Recall: 0.678
-F1 Score: 0.386
-AUC score: 0.532
+Accuracy: 0.454
+Precision: 0.272
+Recall: 0.703
+F1 Score: 0.393
+AUC score: 0.555
 
-Mean score: 0.3821805898007374
+Mean score: 0.3922824043934604

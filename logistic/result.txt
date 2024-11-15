@@ -1,0 +1,36 @@
+Fold 1 result:
+Accuracy: 0.458
+Precision: 0.252
+Recall: 0.590
+F1 Score: 0.353
+AUC score: 0.515
+
+Fold 2 result:
+Accuracy: 0.488
+Precision: 0.263
+Recall: 0.580
+F1 Score: 0.362
+AUC score: 0.519
+
+Fold 3 result:
+Accuracy: 0.464
+Precision: 0.255
+Recall: 0.594
+F1 Score: 0.357
+AUC score: 0.524
+
+Fold 4 result:
+Accuracy: 0.516
+Precision: 0.276
+Recall: 0.572
+F1 Score: 0.372
+AUC score: 0.533
+
+Fold 5 result:
+Accuracy: 0.435
+Precision: 0.249
+Recall: 0.622
+F1 Score: 0.356
+AUC score: 0.504
+
+Mean score: 0.3600265485802905
