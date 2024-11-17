@@ -97,6 +97,9 @@ def cv(pipeline, x, y, k, random_state, verbose=False, path=None):
 
     scores = []
     auc_scores = []
+    precisons = []
+    recalls = []
+    accs = []
     kf = StratifiedKFold(n_splits=k, shuffle=True, random_state=random_state)
     for i, (train_index, test_index) in enumerate(kf.split(x,y), start=1):
         if verbose: print(f'Fold {i} evaluation result:')
@@ -121,7 +124,7 @@ def cv(pipeline, x, y, k, random_state, verbose=False, path=None):
           roc_name = None
           
           
-        f1, roc_auc = evaluate_model(
+        f1, roc_auc, acc, precision, recall = evaluate_model(
           y_test, y_pred, y_pred_prob, 
           verbose=verbose, 
           fobj=fobj, 
@@ -131,18 +134,35 @@ def cv(pipeline, x, y, k, random_state, verbose=False, path=None):
         if roc_name is not None: plot_roc(y_test, y_pred_prob, fig_name=roc_name)      
         scores.append(f1) 
         auc_scores.append(roc_auc)
+        precisons.append(precision)
+        recalls.append(recall)
+        accs.append(acc)
+
         if verbose: print()
 
     mean = np.mean(scores)
     std = np.std(scores)
     auc_mean = np.mean(auc_scores)
     auc_std = np.std(auc_scores)
+    precision_mean = np.mean(precisons)
+    precision_std = np.std(precisons)
+    recall_mean = np.mean(recalls)
+    recall_std = np.std(recalls)
+    acc_mean = np.mean(accs)
+    acc_std = np.std(accs)
+
     if verbose: 
        print(f'Mean F1 score: {mean:.5f}, std: {std:.5f}') 
        print(f'Mean AUC score: {auc_mean:.5f}, std: {auc_std:.5f}') 
+       print(f'Mean Precision score: {precision_mean:.5f}, std: {precision_std:.5f}')
+       print(f'Mean Recall score: {recall_mean:.5f}, std: {recall_std:.5f}')
+       print(f'Mean Accuracy score: {acc_mean:.5f}, std: {acc_std:.5f}')
     if path is not None:
       fobj.write(f'Mean F1 score: {mean:.5f}, std: {std:.5f}\n')
       fobj.write(f'Mean AUC score: {auc_mean:.5f}, std: {auc_std:.5f}\n')
+      fobj.write(f'Mean Precision score: {precision_mean:.5f}, std: {precision_std:.5f}\n')
+      fobj.write(f'Mean Recall score: {recall_mean:.5f}, std: {recall_std:.5f}\n')
+      fobj.write(f'Mean Accuracy score: {acc_mean:.5f}, std: {acc_std:.5f}\n')
       fobj.close()
     return mean
 
@@ -221,7 +241,7 @@ def evaluate_model(y_true, y_pred, y_pred_prob, verbose=False, fobj=None, fig_na
       fobj.write('\n')
 
     print_confusion_matrix(cm,[1,0], fig_name=fig_name)
-    return f1, roc_auc
+    return f1, roc_auc, acc, precision, recall
 
   
 

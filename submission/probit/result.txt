@@ -35,3 +35,6 @@ AUC score: 0.68702
 
 Mean F1 score: 0.47780, std: 0.01337
 Mean AUC score: 0.68860, std: 0.02094
+Mean Precision score: 0.37777, std: 0.01301
+Mean Recall score: 0.65018, std: 0.01499
+Mean Accuracy score: 0.64370, std: 0.01357
