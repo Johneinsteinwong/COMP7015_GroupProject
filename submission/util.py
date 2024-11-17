@@ -67,7 +67,9 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
       knn_imputer = KNNImputer(n_neighbors=self.n_neighbors)
       x_iso_forest = knn_imputer.fit_transform(x)
 
-      iso_forest = IsolationForest(random_state=42)
+      iso_forest = IsolationForest(
+          random_state=42
+      )
       iso_forest.fit(x_iso_forest)
 
       return iso_forest.predict(x_iso_forest)
@@ -83,17 +85,21 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
       return x
    
 
-def cv(pipeline, x, y, scoring, k, random_state, verbose=False, path=None):
+def cv(pipeline, x, y, k, random_state, verbose=False, path=None):
     if path is not None:
       if not os.path.exists(path):
         os.makedirs(path)
       fname = os.path.join(path, f'result.txt')
       fobj = open(fname, 'w+')
+    else:
+      fobj = None
 
 
     scores = []
+    auc_scores = []
     kf = StratifiedKFold(n_splits=k, shuffle=True, random_state=random_state)
     for i, (train_index, test_index) in enumerate(kf.split(x,y), start=1):
+        if verbose: print(f'Fold {i} evaluation result:')
 
         pipe = Pipeline(pipeline)
 
@@ -104,127 +110,144 @@ def cv(pipeline, x, y, scoring, k, random_state, verbose=False, path=None):
         y_pred = pipe.predict(x_test)
         y_pred_prob = pipe.predict_proba(x_test)[:,1]
 
-        score = scoring(y_test, y_pred)
-        scores.append(score)
-        if verbose: print(f'Fold{i}, f1 score: {score}')
-        if path is not None:
-          
+        if path is not None:       
           fig_name = os.path.join(path, f'fold_{i}_confusion_matrix.jpg')
+          opt_thr_name = os.path.join(path, f'fold_{i}_optimal_threshold.jpg')
           roc_name = os.path.join(path, f'fold_{i}_roc.jpg')
-          
           fobj.write(f'Fold {i} result:\n')
-          evaluate_model(y_test, y_pred, y_pred_prob, fobj=fobj, fig_name=fig_name)
-          plot_roc(y_test, y_pred_prob, fig_name=roc_name)       
+        else:
+          fig_name = None
+          opt_thr_name = None
+          roc_name = None
+          
+          
+        f1, roc_auc = evaluate_model(
+          y_test, y_pred, y_pred_prob, 
+          verbose=verbose, 
+          fobj=fobj, 
+          fig_name=fig_name
+        )
+        plot_f1_vs_thr(y_test, y_pred_prob, verbose=verbose, fig_name=opt_thr_name)
+        if roc_name is not None: plot_roc(y_test, y_pred_prob, fig_name=roc_name)      
+        scores.append(f1) 
+        auc_scores.append(roc_auc)
+        if verbose: print()
 
     mean = np.mean(scores)
-    if verbose: print(f'Mean score: {mean}')  
+    std = np.std(scores)
+    auc_mean = np.mean(auc_scores)
+    auc_std = np.std(auc_scores)
+    if verbose: 
+       print(f'Mean F1 score: {mean:.5f}, std: {std:.5f}') 
+       print(f'Mean AUC score: {auc_mean:.5f}, std: {auc_std:.5f}') 
     if path is not None:
-      fobj.write(f'Mean score: {mean}\n')
+      fobj.write(f'Mean F1 score: {mean:.5f}, std: {std:.5f}\n')
+      fobj.write(f'Mean AUC score: {auc_mean:.5f}, std: {auc_std:.5f}\n')
       fobj.close()
     return mean
 
 
-def print_confusion_matrix(confusion_matrix, class_names, fig_name=None, figsize = (6,5)):
-  df_cm = pd.DataFrame(
-      confusion_matrix, index=class_names, columns=class_names,
-  )
-  fig = plt.figure(figsize=figsize)
-  try:
-      heatmap = sns.heatmap(df_cm, annot=True, fmt="d", cmap='Reds')
-  except ValueError:
-      raise ValueError("Confusion matrix values must be integers.")
-  heatmap.yaxis.set_ticklabels(heatmap.yaxis.get_ticklabels(), rotation=0, ha='right', fontsize=20)
-  heatmap.xaxis.set_ticklabels(heatmap.xaxis.get_ticklabels(), rotation=0, ha='right', fontsize=20)
-  plt.title('Confusion matrix', fontsize=25)
-  plt.ylabel('True label', fontsize=17)
-  plt.xlabel('Predicted label', fontsize=17)
-  if fig_name is None:
-    plt.show()
-  else:
-    plt.savefig(fig_name)
-  plt.close()
+def print_confusion_matrix(confusion_matrix, class_names, show_fig= False, fig_name=None, figsize = (6,5)):
+    df_cm = pd.DataFrame(
+        confusion_matrix, index=class_names, columns=class_names,
+    )
+    fig = plt.figure(figsize=figsize)
+    try:
+        heatmap = sns.heatmap(df_cm, annot=True, fmt="d", cmap='Reds')
+    except ValueError:
+        raise ValueError("Confusion matrix values must be integers.")
+    heatmap.yaxis.set_ticklabels(heatmap.yaxis.get_ticklabels(), rotation=0, ha='right', fontsize=20)
+    heatmap.xaxis.set_ticklabels(heatmap.xaxis.get_ticklabels(), rotation=0, ha='right', fontsize=20)
+    plt.title('Confusion matrix', fontsize=25)
+    plt.ylabel('True label', fontsize=17)
+    plt.xlabel('Predicted label', fontsize=17)
+    if show_fig:
+      plt.show()
+    if fig_name is not None:
+      plt.savefig(fig_name)
+    plt.close()
 
 
-def plot_f1_vs_thr(y_true, y_pred_prob, fig_name=None):
-  scores = []
-  thr = np.linspace(0,1,100)
-  for t in thr:
-    y_pred = (y_pred_prob>=t).astype(int)
-    f1 = f1_score(y_true, y_pred)
-    scores.append(f1)
-  ind = np.argmax(scores)
-  print(f'Optimal threshold is {thr[ind]:.4f}, at f1 score of {scores[ind]:.4f}')
-  plt.plot(thr,scores,ms=5,marker='.',linestyle='-')
-  plt.xlim([0.3,0.7])
-  plt.title('F1 score vs threshold')
-  plt.xlabel('Threshold')
-  plt.ylabel('F1 score')
-  plt.grid(which='major', color='k')
-  plt.grid(which='minor', linestyle='--')
-  plt.minorticks_on()
-  if fig_name is None:
-    plt.show()
-  else:
-    plt.savefig(fig_name)
-  plt.close()
+def plot_f1_vs_thr(y_true, y_pred_prob, verbose=False, fig_name=None):
+    scores = []
+    thr = np.linspace(0,1,100)
+    for t in thr:
+      y_pred = (y_pred_prob>=t).astype(int)
+      f1 = f1_score(y_true, y_pred)
+      scores.append(f1)
+    ind = np.argmax(scores)
+    if verbose: print(f'Optimal threshold is {thr[ind]:.5f}, at F1 score of {scores[ind]:.5f}')
+
+    if fig_name is not None:
+      plt.plot(thr,scores,ms=5,marker='.',linestyle='-')
+      plt.xlim([0.3,0.7])
+      plt.title('F1 score vs threshold')
+      plt.xlabel('Threshold')
+      plt.ylabel('F1 score')
+      plt.grid(which='major', color='k')
+      plt.grid(which='minor', linestyle='--')
+      plt.minorticks_on()
+      plt.savefig(fig_name)
+      plt.close()
    
 
 
-def evaluate_model(y_true, y_pred, y_pred_prob, fobj=None, fig_name=None):
-  '''
-  y_true: a numpy array of true class label, containing 0 and 1
-  y_pred: a numpy array of predicted class label, containing 0 and 1
-  y_pred_prob: a numpy array of predicted probability of belonging to a class
-  '''
+def evaluate_model(y_true, y_pred, y_pred_prob, verbose=False, fobj=None, fig_name=None):
+    '''
+    y_true: a numpy array of true class label, containing 0 and 1
+    y_pred: a numpy array of predicted class label, containing 0 and 1
+    y_pred_prob: a numpy array of predicted probability of belonging to a class
+    '''
 
-  tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-  cm = np.array([tp,fn,fp,tn]).reshape(2,2)
-  acc = accuracy_score(y_true, y_pred)
-  precision = precision_score(y_true, y_pred)
-  recall = recall_score(y_true, y_pred)
-  f1 = f1_score(y_true, y_pred)
-  roc_auc = roc_auc_score(y_true, y_pred_prob)
-  if fobj is None:
-    print('Accuracy: %.3f'%acc)
-    print('Precision: %.3f'%precision)
-    print('Recall: %.3f'%recall)
-    print('F1 Score: %.3f'%f1)
-    print('AUC score: %.3f \n'%roc_auc)
-  else:
-    fobj.write('Accuracy: %.3f\n'%acc)
-    fobj.write('Precision: %.3f\n'%precision)
-    fobj.write('Recall: %.3f\n'%recall)
-    fobj.write('F1 Score: %.3f\n'%f1)
-    fobj.write('AUC score: %.3f\n'%roc_auc)
-    fobj.write('\n')
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+    cm = np.array([tp,fn,fp,tn]).reshape(2,2)
+    acc = accuracy_score(y_true, y_pred)
+    precision = precision_score(y_true, y_pred)
+    recall = recall_score(y_true, y_pred)
+    f1 = f1_score(y_true, y_pred)
+    roc_auc = roc_auc_score(y_true, y_pred_prob)
+    if verbose:
+      print('Accuracy: %.5f'%acc)
+      print('Precision: %.5f'%precision)
+      print('Recall: %.5f'%recall)
+      print('F1 Score: %.5f'%f1)
+      print('AUC score: %.5f'%roc_auc)
+    if fobj is not None:
+      fobj.write('Accuracy: %.5f\n'%acc)
+      fobj.write('Precision: %.5f\n'%precision)
+      fobj.write('Recall: %.5f\n'%recall)
+      fobj.write('F1 Score: %.5f\n'%f1)
+      fobj.write('AUC score: %.5f\n'%roc_auc)
+      fobj.write('\n')
 
-  print_confusion_matrix(cm,[1,0], fig_name=fig_name)
+    print_confusion_matrix(cm,[1,0], fig_name=fig_name)
+    return f1, roc_auc
 
   
 
 def plot_roc(y_true, y_pred_prob, fig_name=None):
-  '''
-  y_true: a numpy array of true class label, containing 0 and 1
-  y_pred_prob: a numpy array of predicted probability of belonging to a class
-  '''
+    '''
+    y_true: a numpy array of true class label, containing 0 and 1
+    y_pred_prob: a numpy array of predicted probability of belonging to a class
+    '''
 
-  fpr, tpr, thresholds = roc_curve(y_true, y_pred_prob, pos_label=None, drop_intermediate=False)
-  roc_auc = roc_auc_score(y_true, y_pred_prob)
-  plt.figure()
-  lw = 2
-  plt.plot(fpr, tpr, color='darkorange',
-          lw=lw, label='ROC curve (area = %0.3f)' % roc_auc)
-  plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-  plt.xlim([0.0, 1.0])
-  plt.ylim([0.0, 1.05])
-  plt.xlabel('False Positive Rate')
-  plt.ylabel('True Positive Rate')
-  plt.title('ROC Curve')
-  plt.legend(loc="lower right")
-  if fig_name is None:
-    plt.show()
-  else:
-    plt.savefig(fig_name)
-  plt.close()
+    fpr, tpr, thresholds = roc_curve(y_true, y_pred_prob, pos_label=None, drop_intermediate=False)
+    roc_auc = roc_auc_score(y_true, y_pred_prob)
+    plt.figure()
+    lw = 2
+    plt.plot(fpr, tpr, color='darkorange',
+            lw=lw, label='ROC curve (area = %0.3f)' % roc_auc)
+    plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve')
+    plt.legend(loc="lower right")
+    if fig_name is None:
+      plt.show()
+    else:
+      plt.savefig(fig_name)
+    plt.close()
 
 

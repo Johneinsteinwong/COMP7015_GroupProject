@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.stats import norm, logistic, chi2
+from scipy.stats import norm, logistic
 from scipy.optimize import minimize
 from sklearn.exceptions import NotFittedError
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -17,22 +17,23 @@ class LatentVariableModel(BaseEstimator):
         self.l2 = l2
         self.w = w
         self.reg = reg
+        self.best_loss = np.inf
 
-    def __calculate_hessian(self, func, param, args, epsilon=1e-5):
+
+    def __calculate_hessian(self, func, param, args, eps=1e-5):
+        # Calculate Hessian of the loss using finite difference method
         n = len(param)
-        hessian_matrix = np.zeros((n, n))
+        hessian = np.zeros((n, n))
         
-        # Calculate the gradient at params
-        gradient = approx_fprime(param, func, epsilon, *args)
+        grad = approx_fprime(param, func, eps, *args)
         
-        # Approximate Hessian
         for i in range(n):
             params_eps = np.copy(param)
-            params_eps[i] += epsilon
-            gradient_eps = approx_fprime(params_eps, func, epsilon, *args)
-            hessian_matrix[:, i] = (gradient_eps - gradient) / epsilon
+            params_eps[i] += eps
+            grad_eps = approx_fprime(params_eps, func, eps, *args)
+            hessian[:, i] = (grad_eps - grad) / eps
         
-        return hessian_matrix
+        return hessian
 
     def __log_likelihood(self, param, x, y):
         p = param[:-1]
@@ -50,29 +51,40 @@ class LatentVariableModel(BaseEstimator):
         return obj
 
 
-    def fit(self, x, y, tol=1e-6, maxiter=20000, method='SLSQP', verbose=False, wald=False):
+    def fit(self, x, y, tol=1e-4, maxiter=20000, method='SLSQP', verbose=False, wald=False):
         if self.l1<0 or self.l2<0:
             raise ValueError('l1 and l2 must be non-negative!')
         if self.w<0 or self.w>1:
             raise ValueError('w should be within 0 and 1!')
         loss_values = []
-        self.param = np.zeros(x.shape[1]+1)
-        if verbose:
-            def callback(param):
-                current_loss = self.__loss(param, x, y)
-                loss_values.append(current_loss)
-                print("Current loss:", current_loss)
-        else:
-            callback = None
+        param = np.zeros(x.shape[1]+1)
         
-        result = minimize(self.__loss, self.param, args=(x, y), method=method, tol=tol, options={'maxiter':maxiter}, callback=callback)
-        self.param = result.x
+        def callback(param):
+            # callback to save the best parameters and track the loss values
+            current_loss = self.__loss(param, x, y)
+            loss_values.append(current_loss)
+            if current_loss < self.best_loss:
+                self.best_loss = current_loss
+                self.param = param.copy()
+                if verbose: print("Loss improved, update best parameters.")
+            if verbose: print("Current loss:", current_loss, "Best loss:", self.best_loss)
+
+        
+        result = minimize(
+            self.__loss, 
+            param, 
+            args=(x, y), 
+            method=method, 
+            tol=tol, 
+            options={'maxiter':maxiter}, 
+            callback=callback
+        )
+
         if verbose:
             print('Optimization result:', result.message)
         res_dict = {
             'result': result,
             'loss': loss_values,
-            
         }
 
         if wald:
@@ -125,7 +137,8 @@ class LatentVariableModel(BaseEstimator):
     def predict(self, x, thr=0.5):
         prob = self.predict_proba(x)[:,1]
         return (prob>=thr).astype(int)
-    
+
+
 class logisticModel(LatentVariableModel):
     def __init__(self, l1=0.0, l2=0.0, w=0.5):
         super().__init__(logistic, l1, l2, w)
