@@ -38,6 +38,50 @@ To set up the conda environment for this project, follow the steps below:
     ```bash
     conda activate comp7015
     ```
+
+## Folder Hierarchy
+
+
+```
+submission/
+│
+├── codes/
+│   ├── 1_Feature Engineering (Isolation Forest with Parameter Tuning).ipynb
+│   ├── 2_hyperparameter_search.ipynb
+│   ├── 3_train_probit_logistic.ipynb
+│   ├── 4_train_lightgbm.ipynb
+│   ├── 5_make_prediction.ipynb
+│   ├── data/
+│   │   ├── mimiciv_traindata.csv
+│   │   ├── mortality_testdata.csv
+│   │   └── option1_test_output_example.csv
+│   ├── Models.py
+│   └── util.py
+│
+├── COMP7015 Group Project Report.pdf
+├── environment.yaml
+│
+├── others/
+│   ├── lightgbm/ # cross validation result of LightGBM model
+│   │   ├── ...
+│   ├── lightGBM.json
+│   ├── lightgbm.txt
+│   ├── lightgbm_pipeline.pkl
+│   ├── logistic/ # cross validation result of logistic model
+│   │   ├── ....
+│   ├── logistic.json
+│   ├── logistic.pkl
+│   ├── logistic_pipeline.pkl
+│   ├── probit/ # cross validation result of probit model
+│   │   ├── ...
+│   ├── probit.json
+│   ├── probit.pkl
+│   └── probit_pipeline.pkl
+│
+├── predictions.csv
+└── readme.md
+```
+
 ## Usage
 
 After setting up the environment, you can run the notebooks in the following orders:
