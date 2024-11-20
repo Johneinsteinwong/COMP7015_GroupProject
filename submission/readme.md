@@ -58,8 +58,8 @@ submission/
 │   │   ├── mimiciv_traindata.csv
 │   │   ├── mortality_testdata.csv
 │   │   └── option1_test_output_example.csv
-│   ├── Models.py
-│   └── util.py
+│   ├── Models.py # implementation of the probit and logistic model
+│   └── util.py # useful functions to compute features, cross validation, and visualize results
 │
 ├── COMP7015 Group Project Report.pdf
 ├── environment.yaml
