@@ -39,7 +39,7 @@ To set up the conda environment for this project, follow the steps below:
     conda activate comp7015
     ```
 3. **Optional:**
-- If you would like to run `graph.render('../others/lightgbm/lightgbm_plot_tree', format='jpg')` in `4_train_lightgbm.ipynb` to generate the tree diagram, install and download the graphviz executable from https://graphviz.gitlab.io/download/, and add the `bin` folder to system PATH, then uncomment and run that line. 
+- If you would like to run `graph.render('../others/lightgbm/lightgbm_plot_tree', format='jpg')` in `4_train_lightgbm.ipynb` to generate the tree diagram, install and download the graphviz executable from https://graphviz.gitlab.io/download/, and add the `path_to_graphviz\Graphviz\bin` folder to the system PATH, then close and restart all command prompts, Jupyter notebook or VS Code. Uncomment and run that line. 
 - The image has been generated for you in `submission/others/lightgbm/lightgbm_plot_tree.jpg`.
 
 ## Folder Hierarchy
