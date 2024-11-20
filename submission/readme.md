@@ -49,7 +49,7 @@ To set up the conda environment for this project, follow the steps below:
 submission/
 │
 ├── codes/
-│   ├── 1_Feature Engineering (Isolation Forest with Parameter Tuning).ipynb
+│   ├── 1_Data Pre-processing.ipynb
 │   ├── 2_hyperparameter_search.ipynb
 │   ├── 3_train_probit_logistic.ipynb
 │   ├── 4_train_lightgbm.ipynb
@@ -93,7 +93,7 @@ After setting up the environment, you can run the notebooks in the following ord
 
 - This notebook will give you insight about the data and show you the steps to preprocess the data and compute the features.
 ```bash
-1_Feature Engineering (Isolation Forest with Parameter Tuning).ipynb
+1_Data Pre-processing.ipynb
 ```
 2. **Hyperparameter search**
 - This notebook searches for optimal values of hyperparameters for all models (probit, logistic, LightGBM) and save the hyperparameters in the json files of corresponding models (probit.json, logistic.json, lightgbm.json).
