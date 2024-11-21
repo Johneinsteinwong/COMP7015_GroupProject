@@ -167,13 +167,13 @@ def cv(pipeline, x, y, k, random_state, verbose=False, path=None):
     return mean
 
 
-def print_confusion_matrix(confusion_matrix, class_names, show_fig= False, fig_name=None, figsize = (6,5)):
+def print_confusion_matrix(confusion_matrix, class_names, show_fig= False, fig_name=None, figsize = (8,8)):
     df_cm = pd.DataFrame(
         confusion_matrix, index=class_names, columns=class_names,
     )
     fig = plt.figure(figsize=figsize)
     try:
-        heatmap = sns.heatmap(df_cm, annot=True, fmt="d", cmap='Reds')
+        heatmap = sns.heatmap(df_cm, annot=True, fmt="d", cmap='Reds', annot_kws={'size': 25})
     except ValueError:
         raise ValueError("Confusion matrix values must be integers.")
     heatmap.yaxis.set_ticklabels(heatmap.yaxis.get_ticklabels(), rotation=0, ha='right', fontsize=20)
