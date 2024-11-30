@@ -101,8 +101,8 @@ class LatentVariableModel(BaseEstimator):
                         se.round(4),
                         wald_stats.round(4),
                         p_values.round(4)
-                    ), columns=['coef','std err','z','P>|z|']
-            ).sort_values(by='P>|z|', ascending=True).reset_index(inplace=False)
+                    ), columns=['coef','S.E.','coef/S.E.','p-value']
+            ).sort_values(by='p-value', ascending=True).reset_index(inplace=False)
 
             res_dict['wald_result'] = wald_df
 
